@@ -1,5 +1,3 @@
-# en tu módulo personalizado, por ejemplo: sale_report_custom/models/sale_report.py
-
 from odoo import api, fields, models
 
 class SaleReport(models.Model):
