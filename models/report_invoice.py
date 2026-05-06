@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.tools import SQL
 
 class AccountInvoiceReport(models.Model):
     _inherit = "account.invoice.report"
@@ -6,13 +7,14 @@ class AccountInvoiceReport(models.Model):
     partner_category_names = fields.Char(string="Etiqueta", readonly=True)
 
     def _select(self):
-        select = super()._select()
+        base_select = super()._select()
         lang = self.env.lang or 'en_US'
-        select += f"""
+
+        extra = SQL("""
             , (
                 SELECT STRING_AGG(
                     DISTINCT COALESCE(
-                        pc.name->>'{lang}',
+                        pc.name->>%s,
                         pc.name->>'en_US'
                     ),
                     ', '
@@ -22,5 +24,6 @@ class AccountInvoiceReport(models.Model):
                     ON pc.id = rel.category_id
                 WHERE rel.partner_id = move.partner_id
             ) AS partner_category_names
-        """
-        return select
+        """, lang)
+
+        return SQL("%s %s", base_select, extra)
