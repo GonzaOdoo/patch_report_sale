@@ -19,6 +19,6 @@
     'version': '1.0',
 
     # any module necessary for this one to work correctly
-    'depends': ['sale','account','product',],
-
+    'depends': ['sale','account','product','sale_stock'],
+    'data':['security/ir.model.access.csv','views/info_wizard.xml'],
 }
