@@ -7,7 +7,10 @@ class SaleReport(models.Model):
     cliente_stock = fields.Char(string='Stock Cliente', readonly=True)
     commitment_date = fields.Datetime(string='Fecha Programada', readonly=True)
     process_status = fields.Char(string='Estado Proceso', readonly=True)
-    
+    prioridad = fields.Char(
+        string='Prioridad',
+        readonly=True,
+    )
     def _select_sale(self):
         select = super()._select_sale()
         # Añadimos el campo personalizado
@@ -15,6 +18,15 @@ class SaleReport(models.Model):
         select += ", s.x_studio_stockcliente AS cliente_stock"
         select += ", s.commitment_date AS commitment_date"
         select += ", l.process_status AS process_status"
+        select += """
+            , CASE s.x_studio_prioridad
+                WHEN '0' THEN 'Normal'
+                WHEN '1' THEN 'Baja'
+                WHEN '2' THEN 'Media'
+                WHEN 'Alta' THEN 'Alta'
+              END AS prioridad
+        """
+
         return select
 
     def _group_by_sale(self):
@@ -24,6 +36,8 @@ class SaleReport(models.Model):
         group_by += ", s.x_studio_stockcliente"
         group_by += ", s.commitment_date"
         group_by += ", l.process_status"
+        group_by += ", s.x_studio_prioridad"
+        
         return group_by
 
     def action_show_process_detail(self):
