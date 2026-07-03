@@ -6,6 +6,7 @@ class SaleReport(models.Model):
     cliente_final = fields.Char(string='Cliente Final', readonly=True)
     cliente_stock = fields.Char(string='Stock Cliente', readonly=True)
     commitment_date = fields.Datetime(string='Fecha Programada', readonly=True)
+    effective_date = fields.Datetime(string='Fecha Entregada', readonly=True)
     process_status = fields.Char(string='Estado Proceso', readonly=True)
     prioridad = fields.Char(
         string='Prioridad',
@@ -17,6 +18,7 @@ class SaleReport(models.Model):
         select += ", l.x_studio_cliente_final AS cliente_final"
         select += ", s.x_studio_stockcliente AS cliente_stock"
         select += ", s.commitment_date AS commitment_date"
+        select += ", s.effective_date AS effective_date"
         select += ", l.process_status AS process_status"
         select += """
             , CASE s.x_studio_prioridad
@@ -35,6 +37,7 @@ class SaleReport(models.Model):
         group_by += ", l.x_studio_cliente_final"
         group_by += ", s.x_studio_stockcliente"
         group_by += ", s.commitment_date"
+        group_by += ", s.effective_date"
         group_by += ", l.process_status"
         group_by += ", s.x_studio_prioridad"
         
