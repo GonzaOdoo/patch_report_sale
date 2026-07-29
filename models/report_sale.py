@@ -12,6 +12,11 @@ class SaleReport(models.Model):
         string='Prioridad',
         readonly=True,
     )
+    delivery_days = fields.Integer(
+        string='Días de entrega',
+        readonly=True,
+        aggregator='avg',  # o 'sum' si lo preferís, aunque avg suele tener más sentido
+    )
     def _select_sale(self):
         select = super()._select_sale()
         # Añadimos el campo personalizado
@@ -27,6 +32,13 @@ class SaleReport(models.Model):
                 WHEN '2' THEN 'Media'
                 WHEN 'Alta' THEN 'Alta'
               END AS prioridad
+        """
+        select += """
+            , CASE
+                WHEN s.effective_date IS NOT NULL
+                THEN (DATE(s.effective_date) - DATE(s.date_order))
+                ELSE NULL
+              END AS delivery_days
         """
 
         return select
