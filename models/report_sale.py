@@ -17,6 +17,11 @@ class SaleReport(models.Model):
         readonly=True,
         aggregator='avg',  # o 'sum' si lo preferís, aunque avg suele tener más sentido
     )
+
+    fabrication_date = fields.Datetime(
+        string='Fecha Fabricación',
+        readonly=True,
+    )
     def _select_sale(self):
         select = super()._select_sale()
         # Añadimos el campo personalizado
@@ -25,6 +30,7 @@ class SaleReport(models.Model):
         select += ", s.commitment_date AS commitment_date"
         select += ", s.effective_date AS effective_date"
         select += ", l.process_status AS process_status"
+        select += ", l.fabrication_date AS fabrication_date"
         select += """
             , CASE s.x_studio_prioridad
                 WHEN '0' THEN 'Normal'
@@ -52,6 +58,7 @@ class SaleReport(models.Model):
         group_by += ", s.effective_date"
         group_by += ", l.process_status"
         group_by += ", s.x_studio_prioridad"
+        group_by += ", l.fabrication_date"
         
         return group_by
 

@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import models, fields, api
 
 
 class SaleOrder(models.Model):
@@ -9,6 +9,55 @@ class SaleOrder(models.Model):
         store=True,
     )
     
+    fabrication_date = fields.Datetime(
+        string='Fecha Fabricación',
+        compute='_compute_fabrication_date',
+        store=True,
+    )
+
+    @api.depends(
+        'move_ids',
+        'move_ids.date',
+        'move_ids.production_id',
+        'move_ids.production_id.state',
+        'move_ids.move_orig_ids',
+        'move_ids.move_orig_ids.date',
+        'move_ids.move_orig_ids.production_id',
+        'move_ids.move_orig_ids.production_id.state',
+    )
+    def _compute_fabrication_date(self):
+        for line in self:
+            all_moves = line._get_process_moves()
+    
+            mrp_moves = all_moves.filtered(
+                lambda m: (
+                    m.picking_type_id.code == 'mrp_operation'
+                    and m.production_id
+                    and m.production_id.state != 'cancel'
+                )
+            )
+    
+            if not mrp_moves:
+                line.fabrication_date = False
+                continue
+    
+            productions = mrp_moves.mapped('production_id')
+    
+            # Si alguna fabricación todavía no terminó,
+            # no mostramos fecha.
+            if any(production.state != 'done' for production in productions):
+                line.fabrication_date = False
+                continue
+    
+            done_moves = mrp_moves.filtered(
+                lambda m: m.production_id.state == 'done'
+            )
+    
+            line.fabrication_date = (
+                max(done_moves.mapped('date'))
+                if done_moves
+                else False
+            )
 
     def _compute_process_status(self):
         for line in self:
@@ -178,3 +227,47 @@ class SaleOrder(models.Model):
             stack.extend(current.move_orig_ids)
     
         return False
+
+
+    def _get_process_moves(self):
+        self.ensure_one()
+    
+        direct_moves = self.move_ids
+    
+        process_moves = direct_moves.filtered(
+            lambda m: m.picking_type_id.code in (
+                'mrp_operation',
+                'internal',
+                'incoming',
+            )
+        )
+    
+        # Si ya tiene los movimientos de proceso relacionados
+        # directamente con la línea, usamos esos.
+        if process_moves:
+            return direct_moves
+    
+        # Registros viejos:
+        # la línea solamente tiene el outgoing y hay que recorrer
+        # la cadena de movimientos hacia atrás.
+        outgoing_moves = direct_moves.filtered(
+            lambda m: m.picking_type_id.code == 'outgoing'
+        )
+    
+        all_moves = direct_moves
+    
+        visited = set()
+        stack = list(outgoing_moves)
+    
+        while stack:
+            current = stack.pop()
+    
+            if current.id in visited:
+                continue
+    
+            visited.add(current.id)
+            all_moves |= current
+    
+            stack.extend(current.move_orig_ids)
+    
+        return all_moves
